@@ -1,3 +1,4 @@
+from django.http import JsonResponse
 from django.shortcuts import redirect, render,get_object_or_404
 from .models import Cart, CartItem
 from store.models import Product, variations
@@ -14,40 +15,53 @@ def add_cart(request, product_id):
     product_variation = []
 
     if request.method == 'POST':
-        # 1. Get the color and size directly from the POST request
+        # Get color and size from POST
         color = request.POST.get('color')
         size = request.POST.get('size')
-
+        
         try:
-            # 2. Find the specific variation matching BOTH color and size
-            variation = variations.objects.get(product=product, color__iexact=color, size__iexact=size)
-            product_variation.append(variation)
-            print(f"DEBUG: Found Variation -> {variation}") # This will now print to your terminal
-        except variations.DoesNotExist:
-            print("DEBUG: Variation not found")
+            # Find the specific variation objects
+            variation_color = variations.objects.get(product=product, color__iexact=color, size__iexact=size)
+            product_variation.append(variation_color)
+        except:
             pass
-   
-    # Cart logic remains largely the same, but ensure it uses the variation
+
+    # Get or create the cart
     try:
         cart = Cart.objects.get(cart_id=_cart_id(request))
     except Cart.DoesNotExist:
         cart = Cart.objects.create(cart_id=_cart_id(request))
-        cart.save()
+    cart.save()
 
-    try:
-        cart_item = CartItem.objects.get(product=product, cart=cart)
+    # Check if a CartItem with this EXACT variation exists
+    cart_items = CartItem.objects.filter(product=product, cart=cart)
+    
+    if cart_items.exists():
+        existing_variation_list = []
+        id_list = []
+        for item in cart_items:
+            existing_variation_list.append(list(item.variations.all()))
+            id_list.append(item.id)
+
+        if product_variation in existing_variation_list:
+            # Increase quantity of the specific variation
+            index = existing_variation_list.index(product_variation)
+            item_id = id_list[index]
+            item = CartItem.objects.get(id=item_id)
+            item.quantity += 1
+            item.save()
+        else:
+            # Create a new row for the new variation
+            item = CartItem.objects.create(product=product, quantity=1, cart=cart)
+            if len(product_variation) > 0:
+                item.variations.add(*product_variation)
+            item.save()
+    else:
+        # No cart items for this product at all, create first one
+        item = CartItem.objects.create(product=product, quantity=1, cart=cart)
         if len(product_variation) > 0:
-            cart_item.variations.clear() # Clears existing to set the new selection
-            for item in product_variation:
-                cart_item.variations.add(item)  
-        cart_item.quantity += 1
-        cart_item.save()
-    except CartItem.DoesNotExist:
-        cart_item = CartItem.objects.create(product=product, quantity=1, cart=cart)
-        if len(product_variation) > 0:
-            for item in product_variation:
-                cart_item.variations.add(item) 
-        cart_item.save()
+            item.variations.add(*product_variation)
+        item.save()
 
     return redirect('cart')
 
@@ -93,3 +107,24 @@ def cart(request, total=0,quantity=0,cart_items=None):
         "grand_total":grand_total,
     }
     return render(request, 'store/cart.html',context)
+
+def check_cart(request):
+    product_id = request.GET.get('product_id')
+    color = request.GET.get('color')
+    size = request.GET.get('size')
+    
+    in_cart = False
+    try:
+        cart = Cart.objects.get(cart_id=_cart_id(request))
+        # Look for a cart item that matches the product AND the specific variations
+        cart_item = CartItem.objects.filter(
+            cart=cart, 
+            product_id=product_id, 
+            variations__color__iexact=color, 
+            variations__size__iexact=size
+        ).exists()
+        in_cart = cart_item
+    except:
+        pass
+        
+    return JsonResponse({'in_cart': in_cart})

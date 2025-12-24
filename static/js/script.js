@@ -97,3 +97,46 @@ $(document).ready(function () {
     });
   });
 });
+
+
+$(document).ready(function () {
+  // ... your existing code to load sizes ...
+
+  $("#sizeSelect").change(function () {
+    var productId = $("#colorSelect").data("product-id");
+    var color = $("#colorSelect").val();
+    var size = $(this).val();
+
+    if (color && size) {
+      $.ajax({
+        url: "/cart/check_cart/", // Ensure this matches your URL path
+        data: {
+          product_id: productId,
+          color: color,
+          size: size,
+        },
+        success: function (response) {
+          var container = $("#cart-button-container");
+          if (response.in_cart) {
+            container.html(`
+                            <a href="/cart/" class="btn btn-success">
+                                <span class="text">Already added in Cart</span>
+                                <i class="fas fa-check"></i>
+                            </a>
+                            <div class="mt-3">
+                                <a href="/store/" class="btn btn-warning w-100">Continue Shopping</a>
+                            </div>
+                        `);
+          } else {
+            container.html(`
+                            <button type="submit" class="btn btn-primary">
+                                <span class="text">Add to cart</span>
+                                <i class="fas fa-shopping-cart"></i>
+                            </button>
+                        `);
+          }
+        },
+      });
+    }
+  });
+});
