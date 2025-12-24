@@ -115,25 +115,33 @@ $(document).ready(function () {
           color: color,
           size: size,
         },
+        // Inside your AJAX success function
         success: function (response) {
           var container = $("#cart-button-container");
           if (response.in_cart) {
             container.html(`
-                            <a href="/cart/" class="btn btn-success">
-                                <span class="text">Already added in Cart</span>
-                                <i class="fas fa-check"></i>
-                            </a>
-                            <div class="mt-3">
-                                <a href="/store/" class="btn btn-warning w-100">Continue Shopping</a>
-                            </div>
-                        `);
+            <div class="d-flex mb-3">
+                <a href="#" class="btn btn-success mr-2 flex-grow-1">
+                    <span class="text">Already added in Cart</span>
+                    <i class="fas fa-check"></i>
+                </a>
+                <a href="/cart/" class="btn btn-primary flex-grow-1">
+                    <span class="text">View Cart</span>
+                    <i class="fas fa-eye"></i>
+                </a>
+            </div>
+            <a href="/store/" class="btn btn-warning btn-block">
+                <span class="text">Continue Shopping</span>
+                <i class="fas fa-shopping-bag"></i>
+            </a>
+        `);
           } else {
             container.html(`
-                            <button type="submit" class="btn btn-primary">
-                                <span class="text">Add to cart</span>
-                                <i class="fas fa-shopping-cart"></i>
-                            </button>
-                        `);
+            <button type="submit" class="btn btn-primary btn-block">
+                <span class="text">Add to cart</span>
+                <i class="fas fa-shopping-cart"></i>
+            </button>
+        `);
           }
         },
       });
