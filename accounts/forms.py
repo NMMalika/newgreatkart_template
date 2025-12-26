@@ -1,7 +1,6 @@
 from django import forms
 from .models import Account
 
-
 class RegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput(attrs={
         'placeholder': 'Enter Password',
@@ -17,11 +16,9 @@ class RegistrationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Add bootstrap class to all fields
         for field in self.fields.values():
             field.widget.attrs['class'] = 'form-control'
 
-        # Add placeholders
         placeholders = {
             'first_name': 'First Name',
             'last_name': 'Last Name',
@@ -32,3 +29,18 @@ class RegistrationForm(forms.ModelForm):
         for name, field in self.fields.items():
             if name in placeholders:
                 field.widget.attrs['placeholder'] = placeholders[name]
+
+        # highlight invalid fields
+        for field in self.errors:
+            if field in self.fields:
+                self.fields[field].widget.attrs['class'] += ' is-invalid'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        confirm_password = cleaned_data.get("confirm_password")
+
+        if password and confirm_password and password != confirm_password:
+            raise forms.ValidationError("Passwords do not match")
+
+        return cleaned_data
